@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Description: Show this help message
+
+set -eo pipefail
+
+echo "rautils version $RAUTILS_VERSION"
+echo ""
+echo "Usage: rautils <command> [options]"
+echo ""
+echo "Available commands:"
+
+# Scan libexec directory for all rautils-* scripts and extract descriptions
+if [ -d "$RAUTILS_LIBEXEC" ]; then
+  for cmd_file in "$RAUTILS_LIBEXEC"/rautils-*; do
+    if [ -x "$cmd_file" ]; then
+      # Extract command name (remove rautils- prefix)
+      cmd_name=$(basename "$cmd_file" | sed 's/^rautils-//')
+
+      # Extract description from comment header
+      description=$(grep -m1 "^# Description:" "$cmd_file" 2>/dev/null | sed 's/^# Description: //' || echo "")
+
+      # Format output with padding
+      printf "  %-15s %s\n" "$cmd_name" "$description"
+    fi
+  done
+fi
+
+echo ""
+echo "For more information on a specific command, run:"
+echo "  rautils <command> --help"

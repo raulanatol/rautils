@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+# Resolve installation prefix (handles symlinks for Homebrew compatibility)
+resolve_prefix() {
+  local source="${BASH_SOURCE[0]}"
+
+  # Resolve symlinks
+  while [ -h "$source" ]; do
+    DIR="$( cd -P "$( dirname "$source" )" && pwd )"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$DIR/$source"
+  done
+
+  DIR="$( cd -P "$( dirname "$source" )" && pwd )"
+  echo "$DIR/.."
+}
+
+# Set up environment
+export RAUTILS_PREFIX="$(resolve_prefix)"
+export RAUTILS_LIBEXEC="$RAUTILS_PREFIX/libexec"
+
+# Read version from VERSION file
+if [ -f "$RAUTILS_PREFIX/VERSION" ]; then
+  export RAUTILS_VERSION=$(cat "$RAUTILS_PREFIX/VERSION")
+else
+  export RAUTILS_VERSION="unknown"
+fi
+
+# Get command (default to help)
+command="${1:-help}"
+
+# Remove command from arguments
+[ "$1" != "" ] && shift
+
+# Build command path
+command_path="$RAUTILS_LIBEXEC/rautils-$command"
+
+# Execute command or show error
+if [ -x "$command_path" ]; then
+  exec "$command_path" "$@"
+else
+  echo "Unknown command: $command" >&2
+  # Show help when command not found
+  exec "$RAUTILS_LIBEXEC/rautils-help"
+fi
