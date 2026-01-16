@@ -136,15 +136,50 @@ When a subcommand is executed, the following environment variables are available
 
 ### Releasing a New Version
 
-1. Update the VERSION file with the new version number
-2. Update `homebrew/rautils.rb` with the new version
-3. Commit and tag:
+This project uses an automated release system. To create a new release:
+
+1. Ensure all changes are committed and pushed
+2. Run the release command:
    ```bash
-   git commit -am "Bump version to X.Y.Z"
-   git tag -a vX.Y.Z -m "Release version X.Y.Z"
-   git push origin main --tags
+   make release type=patch   # For bug fixes (0.1.0 -> 0.1.1)
+   make release type=minor   # For new features (0.1.0 -> 0.2.0)
+   make release type=major   # For breaking changes (0.1.0 -> 1.0.0)
    ```
-4. Update the Homebrew tap repository
+
+The release process will automatically:
+- Run validation checks on all bash scripts
+- Bump the version in the VERSION file (semantic versioning)
+- Update the Homebrew formula template
+- Create a git commit and tag
+- Push changes and tags to GitHub
+- Trigger GitHub Actions to create the release
+- Update the Homebrew tap repository with the correct SHA256
+
+#### Validation Before Release
+
+To manually validate the project before releasing:
+
+```bash
+make validate
+```
+
+This checks:
+- VERSION file format (MAJOR.MINOR.PATCH)
+- Bash syntax of all scripts
+- Executable permissions
+- Git repository status
+
+#### Troubleshooting Releases
+
+If a release fails:
+- Check the GitHub Actions logs: https://github.com/raulanatol/rautils/actions
+- For tap update failures, you may need to manually update the Homebrew tap
+- The release scripts include automatic rollback for most failure scenarios
+
+#### Requirements
+
+- Git configured with push access to the repository
+- If setting up automated Homebrew tap updates: configure `HOMEBREW_TAP_TOKEN` secret in GitHub repository settings
 
 ## Installation Verification
 

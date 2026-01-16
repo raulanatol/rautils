@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release and Update Homebrew
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Validate VERSION file matches tag
+        run: |
+          FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          TAG_VERSION="${{ steps.get_version.outputs.version }}"
+
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: VERSION file ($FILE_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+          echo "✓ Version validation passed: $TAG_VERSION"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          release_name: Release ${{ steps.get_version.outputs.tag }}
+          body: |
+            Release version ${{ steps.get_version.outputs.version }}
+
+            ## Installation
+
+            ```bash
+            brew install raulanatol/rautils/rautils
+            ```
+
+            For more information, see the [README](https://github.com/raulanatol/rautils/blob/main/README.md).
+          draft: false
+          prerelease: false
+
+      - name: Wait for release tarball to be available
+        run: |
+          echo "Waiting for GitHub to generate release tarball..."
+          sleep 10
+
+      - name: Download release tarball
+        id: download_tarball
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          TARBALL_URL="https://github.com/raulanatol/rautils/archive/refs/tags/v${VERSION}.tar.gz"
+
+          echo "Downloading tarball from: $TARBALL_URL"
+
+          # Download with retry logic
+          for i in {1..5}; do
+            if curl -L -f -o "rautils-${VERSION}.tar.gz" "$TARBALL_URL"; then
+              echo "✓ Download successful"
+              break
+            else
+              echo "Download attempt $i failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+
+            if [ $i -eq 5 ]; then
+              echo "Error: Failed to download tarball after 5 attempts"
+              exit 1
+            fi
+          done
+
+          # Calculate SHA256
+          SHA256=$(shasum -a 256 "rautils-${VERSION}.tar.gz" | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "✓ SHA256: $SHA256"
+
+      - name: Update Homebrew Tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          SHA256="${{ steps.download_tarball.outputs.sha256 }}"
+
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone the tap repository
+          echo "Cloning homebrew-rautils tap..."
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/raulanatol/homebrew-rautils.git" tap-repo
+
+          cd tap-repo
+
+          # Ensure Formula directory exists
+          mkdir -p Formula
+
+          # Copy and update the formula
+          if [ -f "../homebrew/rautils.rb" ]; then
+            cp "../homebrew/rautils.rb" "Formula/rautils.rb"
+          elif [ -f "Formula/rautils.rb" ]; then
+            echo "Using existing formula in tap"
+          else
+            echo "Error: No formula template found"
+            exit 1
+          fi
+
+          # Update formula with actual values
+          sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/rautils.rb
+          sed -i "s|url \".*\"|url \"https://github.com/raulanatol/rautils/archive/refs/tags/v${VERSION}.tar.gz\"|" Formula/rautils.rb
+          sed -i "s/sha256 \".*\"/sha256 \"$SHA256\"/" Formula/rautils.rb
+
+          # Show the diff
+          echo "Formula changes:"
+          git diff Formula/rautils.rb
+
+          # Commit and push
+          git add Formula/rautils.rb
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update rautils to version $VERSION"
+            git push origin main
+            echo "✓ Homebrew tap updated successfully"
+          fi
+
+      - name: Summary
+        run: |
+          echo "🎉 Release v${{ steps.get_version.outputs.version }} completed successfully!"
+          echo ""
+          echo "📦 Release URL: ${{ steps.create_release.outputs.html_url }}"
+          echo "🍺 Homebrew tap updated"
+          echo "✅ SHA256: ${{ steps.download_tarball.outputs.sha256 }}"
