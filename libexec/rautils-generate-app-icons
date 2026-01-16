@@ -1,0 +1,154 @@
+#!/bin/bash
+# Description: Generates macOS app icons (.icns) and favicon from a source PNG image.
+
+# Exit on any error
+set -e
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 <source-png-file>"
+    echo ""
+    echo "Generates macOS app icons (.icns) and favicon from a source PNG image."
+    echo ""
+    echo "Arguments:"
+    echo "  <source-png-file>  Path to a square PNG file (minimum 1024x1024)"
+    echo ""
+    echo "Output:"
+    echo "  <name>.iconset/    Folder containing all icon sizes"
+    echo "  <name>.icns        macOS app icon file"
+    echo "  favicon.ico        Multi-resolution favicon (if ImageMagick available)"
+}
+
+# Verify that a source file was provided
+if [[ $# -eq 0 ]]; then
+    echo "Error: No source file provided."
+    usage
+    exit 1
+fi
+
+SOURCE_FILE="$1"
+
+# Verify that the source file exists
+if [[ ! -f "$SOURCE_FILE" ]]; then
+    echo "Error: File '$SOURCE_FILE' does not exist."
+    usage
+    exit 1
+fi
+
+# Extract the base filename without extension for use in output filenames
+FILE_NAME=$(basename "$SOURCE_FILE" .png)
+ICONSET_DIR="${FILE_NAME}.iconset"
+
+# Check that required tools are available
+if ! command -v sips &> /dev/null; then
+    echo "Error: sips not found. Please install Xcode Command Line Tools:"
+    echo "  xcode-select --install"
+    exit 1
+fi
+
+if ! command -v iconutil &> /dev/null; then
+    echo "Error: iconutil not found. Please install Xcode Command Line Tools:"
+    echo "  xcode-select --install"
+    exit 1
+fi
+
+# Create the iconset directory for storing individual icon files
+mkdir -p "$ICONSET_DIR"
+
+echo "Generating icon sizes from $SOURCE_FILE..."
+
+# Generate all required icon sizes using sips
+# Format: "output_filename:dimension"
+declare -a icon_sizes=(
+    "icon_16x16.png:16"
+    "icon_16x16@2x.png:32"
+    "icon_32x32.png:32"
+    "icon_32x32@2x.png:64"
+    "icon_128x128.png:128"
+    "icon_128x128@2x.png:256"
+    "icon_256x256.png:256"
+    "icon_256x256@2x.png:512"
+    "icon_512x512.png:512"
+    "icon_512x512@2x.png:1024"
+)
+
+# Iterate over each size and generate the corresponding icon
+for icon_spec in "${icon_sizes[@]}"; do
+    # Split the spec into filename and dimension
+    IFS=':' read -r icon_file dimension <<< "$icon_spec"
+    icon_path="$ICONSET_DIR/$icon_file"
+
+    echo "  Creating $icon_file (${dimension}x${dimension})..."
+
+    # Use sips to resize the source image and save to the iconset directory
+    sips -z "$dimension" "$dimension" "$SOURCE_FILE" --out "$icon_path" > /dev/null
+done
+
+echo "Converting iconset to .icns format..."
+
+# Use iconutil to convert the iconset folder to an .icns file
+iconutil -c icns "$ICONSET_DIR" -o "${FILE_NAME}.icns"
+
+echo "Generated: ${FILE_NAME}.icns"
+
+# Generate favicon.ico using available tools
+echo ""
+echo "Attempting to generate favicon.ico..."
+
+# Check if ImageMagick's convert command is available
+if command -v convert &> /dev/null; then
+    echo "Using ImageMagick for favicon generation..."
+
+    # Create favicon images at the required sizes (16x16, 32x32, 48x48)
+    convert "$SOURCE_FILE" -resize 16x16 favicon-16.png
+    convert "$SOURCE_FILE" -resize 32x32 favicon-32.png
+    convert "$SOURCE_FILE" -resize 48x48 favicon-48.png
+
+    # Combine all favicon sizes into a single multi-resolution .ico file
+    convert favicon-16.png favicon-32.png favicon-48.png favicon.ico
+
+    # Remove the temporary PNG files
+    rm -f favicon-16.png favicon-32.png favicon-48.png
+
+    echo "Generated: favicon.ico"
+
+# Check if ffmpeg is available as a fallback
+elif command -v ffmpeg &> /dev/null; then
+    echo "Using ffmpeg for favicon generation..."
+
+    # Create a temporary 256x256 image to scale down from
+    sips -z 256 256 "$SOURCE_FILE" --out favicon-256.png > /dev/null
+
+    # Scale down to the three favicon sizes using ffmpeg
+    ffmpeg -i favicon-256.png -vf scale=16:16 favicon-16.png -y > /dev/null 2>&1
+    ffmpeg -i favicon-256.png -vf scale=32:32 favicon-32.png -y > /dev/null 2>&1
+    ffmpeg -i favicon-256.png -vf scale=48:48 favicon-48.png -y > /dev/null 2>&1
+
+    # Remove the temporary 256px image
+    rm -f favicon-256.png
+
+    # Since we don't have convert to bundle the images into an .ico file, inform the user
+    echo "Warning: ImageMagick (convert) is not installed."
+    echo "The individual favicon PNG files were created but not bundled into favicon.ico"
+    echo "Install ImageMagick to complete favicon generation:"
+    echo "  brew install imagemagick"
+
+    # Clean up the favicon PNG files since they can't be bundled without convert
+    rm -f favicon-16.png favicon-32.png favicon-48.png
+
+else
+    # Neither convert nor ffmpeg is available
+    echo "Warning: Neither ImageMagick (convert) nor ffmpeg found."
+    echo "Favicon generation skipped."
+    echo "Install one of the following tools to generate favicons:"
+    echo "  brew install imagemagick    # Recommended (has convert)"
+    echo "  brew install ffmpeg         # Alternative fallback"
+fi
+
+echo ""
+echo "Done! Generated:"
+echo "  - ${FILE_NAME}.iconset/"
+echo "  - ${FILE_NAME}.icns"
+if [[ -f "favicon.ico" ]]; then
+    echo "  - favicon.ico"
+fi
