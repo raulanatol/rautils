@@ -1,0 +1,72 @@
+#!/bin/bash
+# Description: Generates macOS menu bar (system tray) icons from a source PNG image.
+
+set -euo pipefail
+
+# generate-tray-icons.sh
+# Usage:
+#   ./generate-tray-icons.sh path/to/tray-icon-source.png
+#
+# Description:
+#   Takes a high-resolution, square, monochrome PNG (white on transparent)
+#   and generates standard macOS menu bar (system tray) icon sizes:
+#   - tray-16.png      16x16
+#   - tray-16@2x.png   32x32
+#   - tray-20.png      20x20
+#   - tray-20@2x.png   40x40
+#   - tray-24.png      24x24
+#   - tray-24@2x.png   48x48
+#
+# Requires:
+#   - macOS
+#   - sips (comes with macOS)
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 path/to/tray-icon-source.png"
+    exit 1
+fi
+
+SOURCE="$1"
+
+if [[ ! -f "$SOURCE" ]]; then
+    echo "Error: source file not found: $SOURCE"
+    exit 1
+fi
+
+if ! command -v sips >/dev/null 2>&1; then
+    echo "Error: 'sips' command not found. This script requires macOS 'sips'."
+    echo "Install Xcode Command Line Tools if necessary: xcode-select --install"
+    exit 1
+fi
+
+OUTPUT_DIR="tray-icons"
+mkdir -p "$OUTPUT_DIR"
+
+echo "Using source icon: $SOURCE"
+echo "Output directory:  $OUTPUT_DIR"
+echo
+
+# Helper: resize with sips
+resize_icon() {
+    local size="$1"
+    local out="$2"
+    echo "Generating $out (${size}x${size})"
+    sips -z "$size" "$size" "$SOURCE" --out "$OUTPUT_DIR/$out" >/dev/null
+}
+
+# Standard menu bar sizes:
+# 16pt (1x, 2x), 20pt (1x, 2x), 24pt (1x, 2x)
+resize_icon 16  "tray-16.png"
+resize_icon 32  "tray-16@2x.png"
+
+resize_icon 20  "tray-20.png"
+resize_icon 40  "tray-20@2x.png"
+
+resize_icon 24  "tray-24.png"
+resize_icon 48  "tray-24@2x.png"
+
+echo
+echo "Done. Generated tray icons:"
+ls -1 "$OUTPUT_DIR"
+echo
+echo "You can now use these PNGs as your macOS menu bar (system tray) icon assets."

@@ -1,10 +1,8 @@
 #!/bin/bash
 # Description: Generates macOS app icons (.icns) and favicon from a source PNG image.
 
-# Exit on any error
 set -e
 
-# Function to display usage information
 usage() {
     echo "Usage: $0 <source-png-file>"
     echo ""
@@ -19,7 +17,6 @@ usage() {
     echo "  favicon.ico        Multi-resolution favicon (if ImageMagick available)"
 }
 
-# Verify that a source file was provided
 if [[ $# -eq 0 ]]; then
     echo "Error: No source file provided."
     usage
@@ -28,7 +25,6 @@ fi
 
 SOURCE_FILE="$1"
 
-# Verify that the source file exists
 if [[ ! -f "$SOURCE_FILE" ]]; then
     echo "Error: File '$SOURCE_FILE' does not exist."
     usage
