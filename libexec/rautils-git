@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Description: Git utility commands (delete-merged, sync).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: rautils git <subcommand>"
+    echo ""
+    echo "Git utility commands."
+    echo ""
+    echo "Subcommands:"
+    echo "  delete-merged  Delete local branches already merged into the current branch"
+    echo "  sync           Switch to main branch, pull latest, and delete merged branches"
+    echo ""
+    echo "Examples:"
+    echo "  rautils git delete-merged"
+    echo "  rautils git sync"
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "delete-merged"
+    echo "sync"
+    exit 0
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+SUBCOMMAND="$1"
+shift
+
+case "$SUBCOMMAND" in
+    delete-merged)
+        MERGED_BRANCHES=$(git branch --merged | grep -Ev '(^\*|master|develop|main)' || true)
+
+        if [[ -z "$MERGED_BRANCHES" ]]; then
+            echo "No merged branches to delete."
+        else
+            echo "$MERGED_BRANCHES" | xargs git branch -d
+        fi
+
+        git worktree prune 2>/dev/null || true
+        echo "🧹 Cleanup done!"
+        ;;
+    sync)
+        # Detect default branch
+        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+
+        if [[ -z "$DEFAULT_BRANCH" ]]; then
+            if git show-ref --verify --quiet refs/heads/main; then
+                DEFAULT_BRANCH="main"
+            elif git show-ref --verify --quiet refs/heads/master; then
+                DEFAULT_BRANCH="master"
+            else
+                echo "Error: Could not determine default branch."
+                exit 1
+            fi
+        fi
+
+        echo "Switching to $DEFAULT_BRANCH..."
+        git checkout "$DEFAULT_BRANCH"
+
+        echo "Pulling latest changes..."
+        git pull
+
+        echo "Deleting merged branches..."
+        MERGED_BRANCHES=$(git branch --merged | grep -Ev '(^\*|master|develop|main)' || true)
+
+        if [[ -z "$MERGED_BRANCHES" ]]; then
+            echo "No merged branches to delete."
+        else
+            echo "$MERGED_BRANCHES" | xargs git branch -d
+        fi
+
+        git worktree prune 2>/dev/null || true
+        echo "🧹 Cleanup done!"
+        ;;
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'."
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
