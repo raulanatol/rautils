@@ -102,5 +102,7 @@ This makes `rautils load` automatically generate `ra::log::info`, `ra::log::succ
 
 The description header is critical — it's parsed by the help system and displayed to users.
 
-### Command Documentation (`docs/commands/`)
-Every command **must** have a corresponding markdown file in `docs/commands/<command>.md`. When creating, modifying, or deleting a command, always update its documentation file accordingly. Use existing docs as reference for the format (usage, examples, shell aliases if applicable).
+### Command Documentation
+When creating, modifying, or deleting a command, **always** update:
+1. `docs/commands/<command>.md` — dedicated doc file (usage, examples, shell aliases). Use existing docs as reference for the format.
+2. `README.md` — the commands table must reflect the current set of commands.
