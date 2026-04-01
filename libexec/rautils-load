@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Description: Outputs shell functions for all rautils commands (eval in your shell config).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: eval \"\$(rautils load)\""
+    echo ""
+    echo "Generates shell functions to use rautils commands as ra::* functions."
+    echo ""
+    echo "Add this to your .zshrc or .bashrc:"
+    echo "  eval \"\$(rautils load)\""
+    echo ""
+    echo "Examples after loading:"
+    echo "  ra::log::info \"Deploying...\""
+    echo "  ra::log::success \"Done\""
+    echo "  ra::generate-app-icons image.png"
+}
+
+if [[ "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+# Scan all commands in libexec
+for cmd_path in "$RAUTILS_LIBEXEC"/rautils-*; do
+    [[ -x "$cmd_path" ]] || continue
+
+    cmd_name=$(basename "$cmd_path" | sed 's/^rautils-//')
+
+    # Skip help and load themselves
+    [[ "$cmd_name" == "help" || "$cmd_name" == "load" ]] && continue
+
+    # Generate base function: ra::command-name
+    echo "ra::${cmd_name}() { rautils ${cmd_name} \"\$@\"; }"
+
+    # If the command supports --aliases, generate sub-functions
+    aliases=$("$cmd_path" --aliases 2>/dev/null) || continue
+    while IFS= read -r sub; do
+        [[ -n "$sub" ]] || continue
+        echo "ra::${cmd_name}::${sub}() { rautils ${cmd_name} ${sub} \"\$@\"; }"
+    done <<< "$aliases"
+done

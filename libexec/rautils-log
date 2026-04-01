@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Description: Prints formatted log messages to the terminal (info, success, error).
+
+set -eo pipefail
+
+RESET="\e[0m"
+RED="\e[31m"
+GREEN="\e[32m"
+BLUE="\e[34m"
+
+usage() {
+    echo "Usage: rautils log <level> <message>"
+    echo ""
+    echo "Prints formatted log messages to the terminal."
+    echo ""
+    echo "Levels:"
+    echo "  info     Blue text"
+    echo "  success  Green text with 🤘 prefix"
+    echo "  error    Red text with ❗ prefix"
+    echo ""
+    echo "Examples:"
+    echo "  rautils log info \"Deploying to staging...\""
+    echo "  rautils log success \"Deploy complete\""
+    echo "  rautils log error \"Connection failed\""
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "info"
+    echo "success"
+    echo "error"
+    exit 0
+fi
+
+if [[ $# -lt 2 ]]; then
+    usage
+    exit 1
+fi
+
+LEVEL="$1"
+shift
+MESSAGE="$*"
+
+case "$LEVEL" in
+    info)
+        printf "${BLUE}%s${RESET}\n" "$MESSAGE"
+        ;;
+    success)
+        printf "${GREEN} 🤘 %s${RESET}\n" "$MESSAGE"
+        ;;
+    error)
+        printf "${RED}❗%s${RESET}\n" "$MESSAGE"
+        ;;
+    *)
+        echo "Error: Unknown level '$LEVEL'. Use: info, success, error."
+        exit 1
+        ;;
+esac
