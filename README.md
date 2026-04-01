@@ -48,6 +48,7 @@ ra::generate-app-icons logo.png
 | [`generate-app-tray-icons`](docs/commands/generate-app-tray-icons.md) | Generates macOS menu bar icons from a PNG |
 | [`log`](docs/commands/log.md) | Prints formatted log messages (info, success, error) |
 | [`load`](docs/commands/load.md) | Outputs shell functions for `ra::*` aliases |
+| [`git`](docs/commands/git.md) | Git utilities (delete-merged, sync) |
 | `help` | Shows all available commands |
 
 ## Development
