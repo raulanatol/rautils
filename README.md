@@ -49,6 +49,7 @@ ra::generate-app-icons logo.png
 | [`log`](docs/commands/log.md) | Prints formatted log messages (info, success, error) |
 | [`load`](docs/commands/load.md) | Outputs shell functions for `ra::*` aliases |
 | [`git`](docs/commands/git.md) | Git utilities (delete-merged, sync) |
+| [`github`](docs/commands/github.md) | GitHub utilities (open-actions) |
 | `help` | Shows all available commands |
 
 ## Development
