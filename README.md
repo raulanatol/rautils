@@ -44,12 +44,17 @@ ra::generate-app-icons logo.png
 
 | Command | Description |
 |---------|-------------|
+| [`docker`](docs/commands/docker.md) | Docker utilities (connect) |
+| [`fs`](docs/commands/fs.md) | Filesystem utilities (folder-size) |
 | [`generate-app-icons`](docs/commands/generate-app-icons.md) | Generates macOS app icons (`.icns`) and favicon from a PNG |
 | [`generate-app-tray-icons`](docs/commands/generate-app-tray-icons.md) | Generates macOS menu bar icons from a PNG |
-| [`log`](docs/commands/log.md) | Prints formatted log messages (info, success, error) |
-| [`load`](docs/commands/load.md) | Outputs shell functions for `ra::*` aliases |
 | [`git`](docs/commands/git.md) | Git utilities (delete-merged, sync) |
 | [`github`](docs/commands/github.md) | GitHub utilities (open-actions) |
+| [`load`](docs/commands/load.md) | Outputs shell functions for `ra::*` aliases |
+| [`log`](docs/commands/log.md) | Prints formatted log messages (info, success, error) |
+| [`mac`](docs/commands/mac.md) | macOS utilities (hidden-files, bluetooth, temperature) |
+| [`network`](docs/commands/network.md) | Network utilities (ip, ports) |
+| [`string`](docs/commands/string.md) | String manipulation (uppercase, lowercase, is-number) |
 | `help` | Shows all available commands |
 
 ## Development

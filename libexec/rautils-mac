@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Description: macOS utilities (hidden-files, bluetooth, temperature).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: rautils mac <subcommand> [options]"
+    echo ""
+    echo "macOS-specific utilities."
+    echo ""
+    echo "Subcommands:"
+    echo "  hidden-files <on|off>   Show or hide hidden files in Finder"
+    echo "  bluetooth <on|off>      Toggle Bluetooth on or off"
+    echo "  temperature             Show CPU temperature"
+    echo ""
+    echo "Examples:"
+    echo "  rautils mac hidden-files on"
+    echo "  rautils mac hidden-files off"
+    echo "  rautils mac bluetooth on"
+    echo "  rautils mac bluetooth off"
+    echo "  rautils mac temperature"
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "hidden-files"
+    echo "bluetooth"
+    echo "temperature"
+    exit 0
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+SUBCOMMAND="$1"
+shift
+
+case "$SUBCOMMAND" in
+    hidden-files)
+        if [[ $# -lt 1 ]]; then
+            echo "Error: Specify 'on' or 'off'."
+            echo "Usage: rautils mac hidden-files <on|off>"
+            exit 1
+        fi
+        case "$1" in
+            on)
+                defaults write com.apple.finder AppleShowAllFiles -bool true
+                killall Finder
+                echo "Hidden files are now visible."
+                ;;
+            off)
+                defaults write com.apple.finder AppleShowAllFiles -bool false
+                killall Finder
+                echo "Hidden files are now hidden."
+                ;;
+            *)
+                echo "Error: Invalid option '$1'. Use 'on' or 'off'."
+                exit 1
+                ;;
+        esac
+        ;;
+    bluetooth)
+        if [[ $# -lt 1 ]]; then
+            echo "Error: Specify 'on' or 'off'."
+            echo "Usage: rautils mac bluetooth <on|off>"
+            exit 1
+        fi
+        if ! command -v blueutil &>/dev/null; then
+            echo "Error: blueutil is not installed. Install it with: brew install blueutil"
+            exit 1
+        fi
+        case "$1" in
+            on)
+                blueutil --power 1
+                echo "Bluetooth is now on."
+                ;;
+            off)
+                blueutil --power 0
+                echo "Bluetooth is now off."
+                ;;
+            *)
+                echo "Error: Invalid option '$1'. Use 'on' or 'off'."
+                exit 1
+                ;;
+        esac
+        ;;
+    temperature)
+        sudo powermetrics -n 1 -i 1 --samplers smc 2>/dev/null | grep -i "CPU die temperature" \
+            || echo "Error: Could not read CPU temperature (requires sudo)."
+        ;;
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'."
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

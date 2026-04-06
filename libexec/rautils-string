@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Description: String manipulation utilities (uppercase, lowercase, is-number).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: rautils string <subcommand> <value>"
+    echo ""
+    echo "String manipulation utilities."
+    echo ""
+    echo "Subcommands:"
+    echo "  uppercase   Convert string to uppercase"
+    echo "  lowercase   Convert string to lowercase"
+    echo "  is-number   Check if value is a number (exits 0 if true, 1 if false)"
+    echo ""
+    echo "Examples:"
+    echo "  rautils string uppercase \"hello world\""
+    echo "  rautils string lowercase \"HELLO WORLD\""
+    echo "  rautils string is-number 42"
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "uppercase"
+    echo "lowercase"
+    echo "is-number"
+    exit 0
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+SUBCOMMAND="$1"
+shift
+
+case "$SUBCOMMAND" in
+    uppercase)
+        if [[ $# -lt 1 ]]; then
+            echo "Error: Missing value argument."
+            echo "Usage: rautils string uppercase <value>"
+            exit 1
+        fi
+        echo "$*" | tr '[:lower:]' '[:upper:]'
+        ;;
+    lowercase)
+        if [[ $# -lt 1 ]]; then
+            echo "Error: Missing value argument."
+            echo "Usage: rautils string lowercase <value>"
+            exit 1
+        fi
+        echo "$*" | tr '[:upper:]' '[:lower:]'
+        ;;
+    is-number)
+        if [[ $# -lt 1 ]]; then
+            echo "Error: Missing value argument."
+            echo "Usage: rautils string is-number <value>"
+            exit 1
+        fi
+        if [[ "$1" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+            echo "true"
+            exit 0
+        else
+            echo "false"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'."
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

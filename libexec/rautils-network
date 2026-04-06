@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Description: Network utilities (ip, ports).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: rautils network <subcommand> [options]"
+    echo ""
+    echo "Network utilities."
+    echo ""
+    echo "Subcommands:"
+    echo "  ip      Show public or local IP address"
+    echo "  ports   List TCP ports currently in use"
+    echo ""
+    echo "Options for 'ip':"
+    echo "  -l, --local   Show local IP instead of public IP"
+    echo ""
+    echo "Examples:"
+    echo "  rautils network ip"
+    echo "  rautils network ip --local"
+    echo "  rautils network ports"
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "ip"
+    echo "ports"
+    exit 0
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+SUBCOMMAND="$1"
+shift
+
+case "$SUBCOMMAND" in
+    ip)
+        if [[ "${1:-}" == "-l" || "${1:-}" == "--local" ]]; then
+            ipconfig getifaddr en0 2>/dev/null || echo "No local IP found (en0 not active)."
+        else
+            dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null \
+                || wget -qO- https://ifconfig.me 2>/dev/null \
+                || curl -s https://ifconfig.me 2>/dev/null \
+                || echo "Could not determine public IP."
+        fi
+        ;;
+    ports)
+        sudo lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null || echo "Error: Could not list ports (requires sudo)."
+        ;;
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'."
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
