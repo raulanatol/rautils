@@ -1,6 +1,6 @@
 # github
 
-GitHub utilities.
+GitHub utility commands.
 
 ## Usage
 
@@ -10,21 +10,19 @@ rautils github <subcommand>
 
 ## Subcommands
 
-### `actions`
+### `open-actions`
 
-Opens the GitHub Actions page for the current repository in your default browser. Automatically converts SSH remote URLs to HTTPS.
+Opens the GitHub Actions page for the current repository in the default browser. Detects the repository URL from the `origin` remote (supports both SSH and HTTPS remotes).
 
 ```bash
-rautils github actions
+rautils github open-actions
 ```
 
 ## Examples
 
 ```bash
-# Open Actions page for current repo
-cd ~/Projects/my-repo
-rautils github actions
-# Opening https://github.com/user/my-repo/actions
+# Open the Actions page for the current repo
+rautils github open-actions
 ```
 
 ## Shell aliases
@@ -32,5 +30,5 @@ rautils github actions
 After running `eval "$(rautils load)"`, you can use shorthand functions:
 
 ```bash
-ra::github::actions
+ra::github::open-actions
 ```

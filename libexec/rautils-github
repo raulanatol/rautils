@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Description: GitHub utilities (actions).
+# Description: GitHub utility commands (open-actions).
 
 set -eo pipefail
 
 usage() {
     echo "Usage: rautils github <subcommand>"
     echo ""
-    echo "GitHub utilities."
+    echo "GitHub utility commands."
     echo ""
     echo "Subcommands:"
-    echo "  actions   Open the GitHub Actions page for the current repository"
+    echo "  open-actions  Open the GitHub Actions page for the current repository"
     echo ""
     echo "Examples:"
-    echo "  rautils github actions"
+    echo "  rautils github open-actions"
 }
 
 if [[ $# -lt 1 ]]; then
@@ -22,7 +22,7 @@ fi
 
 # Output subcommand aliases for `rautils load`
 if [[ "$1" == "--aliases" ]]; then
-    echo "actions"
+    echo "open-actions"
     exit 0
 fi
 
@@ -34,32 +34,29 @@ fi
 SUBCOMMAND="$1"
 shift
 
-get_repo_https_url() {
+get_repo_url() {
     local remote_url
     remote_url=$(git remote get-url origin 2>/dev/null)
 
     if [[ -z "$remote_url" ]]; then
         echo "Error: No git remote 'origin' found." >&2
-        return 1
+        exit 1
     fi
 
-    # Convert SSH URL to HTTPS
+    # Convert SSH or HTTPS URLs to base GitHub URL
+    remote_url="${remote_url%.git}"
     if [[ "$remote_url" == git@* ]]; then
+        # git@github.com:user/repo -> https://github.com/user/repo
         remote_url="${remote_url/git@github.com:/https://github.com/}"
     fi
-
-    # Remove .git suffix
-    remote_url="${remote_url%.git}"
 
     echo "$remote_url"
 }
 
 case "$SUBCOMMAND" in
-    actions)
-        REPO_URL=$(get_repo_https_url) || exit 1
-        ACTIONS_URL="${REPO_URL}/actions"
-        echo "Opening $ACTIONS_URL"
-        open "$ACTIONS_URL"
+    open-actions)
+        REPO_URL=$(get_repo_url)
+        open "${REPO_URL}/actions"
         ;;
     *)
         echo "Error: Unknown subcommand '$SUBCOMMAND'."

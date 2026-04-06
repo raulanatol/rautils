@@ -49,7 +49,7 @@ ra::generate-app-icons logo.png
 | [`generate-app-icons`](docs/commands/generate-app-icons.md) | Generates macOS app icons (`.icns`) and favicon from a PNG |
 | [`generate-app-tray-icons`](docs/commands/generate-app-tray-icons.md) | Generates macOS menu bar icons from a PNG |
 | [`git`](docs/commands/git.md) | Git utilities (delete-merged, sync) |
-| [`github`](docs/commands/github.md) | GitHub utilities (actions) |
+| [`github`](docs/commands/github.md) | GitHub utilities (open-actions) |
 | [`load`](docs/commands/load.md) | Outputs shell functions for `ra::*` aliases |
 | [`log`](docs/commands/log.md) | Prints formatted log messages (info, success, error) |
 | [`mac`](docs/commands/mac.md) | macOS utilities (hidden-files, bluetooth, temperature) |
