@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Description: Docker utilities (connect).
+
+set -eo pipefail
+
+usage() {
+    echo "Usage: rautils docker <subcommand>"
+    echo ""
+    echo "Docker utilities."
+    echo ""
+    echo "Subcommands:"
+    echo "  connect   Select a running container and open a shell into it"
+    echo ""
+    echo "Examples:"
+    echo "  rautils docker connect"
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+# Output subcommand aliases for `rautils load`
+if [[ "$1" == "--aliases" ]]; then
+    echo "connect"
+    exit 0
+fi
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    usage
+    exit 0
+fi
+
+SUBCOMMAND="$1"
+shift
+
+case "$SUBCOMMAND" in
+    connect)
+        if ! command -v docker &>/dev/null; then
+            echo "Error: docker is not installed."
+            exit 1
+        fi
+
+        CONTAINERS=$(docker ps --format "{{.ID}} {{.Names}} {{.Image}}" 2>/dev/null)
+
+        if [[ -z "$CONTAINERS" ]]; then
+            echo "No running containers found."
+            exit 0
+        fi
+
+        if command -v fzf &>/dev/null; then
+            SELECTED=$(echo "$CONTAINERS" | fzf --prompt="Select container: ")
+        else
+            echo "Running containers:"
+            echo "$CONTAINERS" | nl
+            echo ""
+            read -rp "Enter container number: " NUM
+            SELECTED=$(echo "$CONTAINERS" | sed -n "${NUM}p")
+        fi
+
+        if [[ -z "$SELECTED" ]]; then
+            echo "No container selected."
+            exit 0
+        fi
+
+        CONTAINER_ID=$(echo "$SELECTED" | awk '{print $1}')
+
+        # Try bash first, fall back to sh
+        docker exec -it "$CONTAINER_ID" /bin/bash 2>/dev/null \
+            || docker exec -it "$CONTAINER_ID" /bin/sh
+        ;;
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'."
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
